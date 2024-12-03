@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+	<UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="TicketManager.fs" />
+    <Compile Include="SeatManager.fs" />
+    <Compile Include="BookingForm.fs" />
+    <Compile Include="CinemaForm.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+</Project>
