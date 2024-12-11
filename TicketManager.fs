@@ -1,10 +1,10 @@
 ﻿module TicketManager
 open System
-open System.IO
+
+type Ticket = { TicketID: string; CustomerName: string; Seat: string; Showtime: string }
 
 type TicketManager() =
     member this.GenerateTicketID() = Guid.NewGuid().ToString()
-
-    member this.SaveTicketToFile(ticketID: string, customerName: string, seat: string, showtime: string) =
-        let ticketDetails = $"Ticket ID: {ticketID}\nCustomer: {customerName}\nSeat: {seat}\nShowtime: {showtime}\n\n"
-        File.AppendAllText("bookings.txt", ticketDetails)
+    member this.SaveTicket(ticket: Ticket) =
+        let ticketDetails = $"Ticket ID: {ticket.TicketID}\nCustomer: {ticket.CustomerName}\nSeat: {ticket.Seat}\nShowtime: {ticket.Showtime}\n\n"
+        System.IO.File.AppendAllText("bookings.txt", ticketDetails)

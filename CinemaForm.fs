@@ -1,58 +1,57 @@
 ﻿module CinemaForm
-   open System
-   open System.Drawing
-   open System.Windows.Forms
-   open TicketManager
-   open SeatManager
-   open BookingForm
- 
-   type CinemaForm(seatManager: SeatManager, ticketManager: TicketManager, showtimes: string[]) =
+open System
+open System.Drawing
+open System.Windows.Forms
+open SeatManager
+open TicketManager
+open BookingForm
+
+type CinemaForm(seatManager: SeatManager, ticketManager: TicketManager, showtimes: string[], rows: int, cols: int) =
     let form = new Form(Text = "Cinema Seat Reservation", Size = Size(500, 500))
     let panel = new Panel(Dock = DockStyle.Fill, Location = Point(0, 100), Size = Size(500, 400))
     let showtimeDropdown = new ComboBox(Location = Point(10, 10), Width = 200)
 
-    // Initialize dropdown and showtime layouts
     do
         form.Controls.Add(showtimeDropdown)
         form.Controls.Add(panel)
         showtimeDropdown.Items.AddRange(showtimes |> Array.map box)
         showtimeDropdown.SelectedIndex <- 0
+        showtimes |> Array.iter (fun showtime -> seatManager.InitializeShowtime(showtime, rows, cols))
 
-        for showtime in showtimes do
-            seatManager.InitializeShowtime(showtime)
+    // Calculate the starting position to center the grid
+    let calculateGridStartPosition (gridWidth: int, gridHeight: int, panelWidth: int, panelHeight: int) =
+        let startX = max 0 ((panelWidth - gridWidth) / 2)
+        let startY = max 0 ((panelHeight - gridHeight) / 2)
+        (startX, startY)
 
-    // Redraw seat layout for the selected showtime
+    // Redraw seats
     let redrawSeats showtime =
         panel.Controls.Clear()
+        let layout = seatManager.GetSeatLayout(showtime)
+        let buttonWidth, buttonHeight, spacing = 50, 40, 10
+        let gridWidth = cols * (buttonWidth + spacing) - spacing
+        let gridHeight = rows * (buttonHeight + spacing) - spacing
+        let (startX, startY) = calculateGridStartPosition(gridWidth, gridHeight, panel.ClientSize.Width, panel.ClientSize.Height)
 
-        let handleSeatClick (row: int) (col: int) (button: Button) =
-            if seatManager.IsSeatAvailable(showtime, row, col) then
-                seatManager.ReserveSeat(showtime, row, col)
-                button.BackColor <- Color.Red
-                button.Enabled <- false
-                let bookingForm = BookingForm(ticketManager, seatManager, showtime, row, col)
-                bookingForm.ShowBookingForm()
+        layout
+        |> List.iter (fun seat ->
+            let button = new Button(Text = $"R{seat.Row + 1}C{seat.Col + 1}", Size = Size(buttonWidth, buttonHeight))
+            button.Location <- Point(startX + seat.Col * (buttonWidth + spacing), startY + seat.Row * (buttonHeight + spacing))
+            button.BackColor <- if seat.IsReserved then Color.Red else Color.Green
+            button.Click.Add(fun _ ->
+                if not seat.IsReserved then
+                    // Open the booking form for customer details
+                    let bookingForm = new BookingForm(ticketManager, showtime, seat.Row, seat.Col)
+                    bookingForm.ShowBookingForm()
+                    
+                    // Update seat reservation after successful booking
+                    if seatManager.IsSeatAvailable(showtime, seat.Row, seat.Col) then
+                        seatManager.ReserveSeat(showtime, seat.Row, seat.Col)
+                        button.BackColor <- Color.Red
+            )
+            panel.Controls.Add(button)
+        )
 
-        let seatLayout = seatManager.GetSeatLayout(showtime)
-        let totalRows = Array2D.length1 seatLayout
-        let totalCols = Array2D.length2 seatLayout
-        let buttonWidth = 60
-        let buttonHeight = 40
-        let horizontalSpacing = 65
-        let verticalSpacing = 45
-        let totalWidth = totalCols * horizontalSpacing
-        let totalHeight = totalRows * verticalSpacing
-        let startX = (panel.Width - totalWidth) / 2
-        let startY = (panel.Height - totalHeight) / 2
-
-        for row in 0 .. totalRows - 1 do
-            for col in 0 .. totalCols - 1 do
-                let button = new Button(Text = $"R{row + 1}C{col + 1}", Size = Size(buttonWidth, buttonHeight), Location = Point(startX + col * horizontalSpacing, startY + row * verticalSpacing))
-                button.BackColor <- if seatManager.IsSeatAvailable(showtime, row, col) then Color.Green else Color.Red
-                button.Click.Add(fun _ -> handleSeatClick row col button)
-                panel.Controls.Add(button)
-
-    // Handle showtime selection change
     do showtimeDropdown.SelectedIndexChanged.Add(fun _ ->
         let selectedShowtime = showtimeDropdown.SelectedItem.ToString()
         redrawSeats selectedShowtime)
