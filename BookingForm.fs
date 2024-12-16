@@ -16,6 +16,8 @@ type BookingForm(ticketManager: TicketManager, showtime: string, row: int, col: 
             | "" | null -> false
             | _ -> true
 
+        let mutable bookingConfirmed = false
+
         let handleBooking () =
             let customerName = nameTextBox.Text
             if validateCustomerName customerName then
@@ -24,11 +26,15 @@ type BookingForm(ticketManager: TicketManager, showtime: string, row: int, col: 
                 let ticket = { TicketID = ticketID; CustomerName = customerName; Seat = seat; Showtime = showtime }
                 ticketManager.SaveTicket(ticket)
                 MessageBox.Show($"Booking Confirmed!\nTicket ID: {ticketID}") |> ignore
+                bookingConfirmed <- true
                 bookingForm.Close()
             else
                 MessageBox.Show("Customer name cannot be empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error) |> ignore
 
         submitButton.Click.Add(fun _ -> handleBooking())
 
+        bookingForm.FormClosing.Add(fun _ -> bookingForm.DialogResult <- if bookingConfirmed then DialogResult.OK else DialogResult.Cancel)
+
         bookingForm.Controls.AddRange([| nameLabel; nameTextBox; submitButton |])
         bookingForm.ShowDialog() |> ignore
+        bookingConfirmed

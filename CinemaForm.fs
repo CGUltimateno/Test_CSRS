@@ -39,13 +39,13 @@ type CinemaForm(seatManager: SeatManager, ticketManager: TicketManager, showtime
             button.Location <- Point(startX + seat.Col * (buttonWidth + spacing), startY + seat.Row * (buttonHeight + spacing))
             button.BackColor <- if seat.IsReserved then Color.Red else Color.Green
             button.Click.Add(fun _ ->
-                if not seat.IsReserved then
+                if not seat.IsReserved && seatManager.IsSeatAvailable(showtime, seat.Row, seat.Col) then
                     // Open the booking form for customer details
                     let bookingForm = new BookingForm(ticketManager, showtime, seat.Row, seat.Col)
-                    bookingForm.ShowBookingForm()
+                    let bookingConfirmed = bookingForm.ShowBookingForm()
                     
                     // Update seat reservation after successful booking
-                    if seatManager.IsSeatAvailable(showtime, seat.Row, seat.Col) then
+                    if bookingConfirmed && seatManager.IsSeatAvailable(showtime, seat.Row, seat.Col) then
                         seatManager.ReserveSeat(showtime, seat.Row, seat.Col)
                         button.BackColor <- Color.Red
             )
